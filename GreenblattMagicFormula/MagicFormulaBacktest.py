@@ -27,7 +27,7 @@ def initialize(context):
     context.stocks_per_month = 2  # number of stocks to buy each month
     context.stocks = []  # will hold the list of stocks in portfolio
     context.top_stocks = []  # will hold the top ranked stocks in each period
-    
+
     # Monthly rebalance
     schedule_function(
         rebalance,
@@ -44,25 +44,25 @@ def make_pipeline(context):
     sector = RBICSFocus.l1_name.latest
     sector_mask = (sector != "Finance") & (sector != "Utilities")
     mask = QTradableStocksUS() & (Fundamentals.mkt_val_public.latest > context.min_mcap) & sector_mask
-    
+
     # Quality
     ebit = Fundamentals.ebit_oper_ltm.latest
     ev = Fundamentals.entrpr_val_qf.latest
     earnings_yield = ebit / ev
-    
+
     # Cheapness
     net_fixed_assets = Fundamentals.ppe_net.latest
     working_capital = Fundamentals.wkcap_qf.latest
     roc = ebit / (net_fixed_assets + working_capital)
-    
+
     # Rank and combine
     ey_rank = earnings_yield.rank(mask=mask)
     roc_rank = roc.rank(mask=mask)
     combined_score = ey_rank + roc_rank
-    
+
     # In the worst case we will need 26 (assuming top 24 are already held)
     top_stocks = combined_score.top(30, mask=mask)
-    
+
     return Pipeline(
       columns={"top_stocks": top_stocks,
                "score": combined_score},
@@ -83,19 +83,16 @@ def before_trading_start(context, data):
              
 def rebalance(context, data):
     n = context.holding_period * context.stocks_per_month
-    
+
     # Get top stocks that aren't already held
-    new_stocks = [s for s in context.top_stocks if s not in context.stocks][:context.stocks_per_month]  
+    new_stocks = [s for s in context.top_stocks if s not in context.stocks][:context.stocks_per_month]
     # For the first year of the backtest, just accumulate
-    if len(context.stocks) < n:
-        order_stocks(new_stocks, context, data)
-    else:
+    if len(context.stocks) >= n:
         # Sell first two
         stocks_to_sell = context.stocks[:context.stocks_per_month]
         sell_stocks(stocks_to_sell, context, data)
-        order_stocks(new_stocks, context, data)
-    
-    log.info("Portfolio size after rebalance: " + str(len(context.stocks)))
+    order_stocks(new_stocks, context, data)
+    log.info(f"Portfolio size after rebalance: {len(context.stocks)}")
     
     
 def order_stocks(new_stocks, context, data):
