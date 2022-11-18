@@ -25,10 +25,10 @@ def generate_population(network_size, population_size):
     population = []
     # Produce the simplest arrangement, which is just the
     # individuals in order of their index, i.e [1,2,3,4,5,6,7,8].
-    test_phenotype = [i for i in range(1, network_size + 1)]
+    test_phenotype = list(range(1, network_size + 1))
 
     # Shuffle the test_phenotype to generate the population
-    for i in range(population_size):
+    for _ in range(population_size):
         random.shuffle(test_phenotype)
         population.append(list(test_phenotype))
 
@@ -68,14 +68,14 @@ def survive_and_reproduce(population):
     number_removed = len(population) - len(survivors)
 
     # Now, the survivors 'breed'. This for loop maintains the population_size.
-    for i in range(number_removed):
+    for _ in range(number_removed):
         # Pick a parent from the survivors
         parent = random.choice(survivors)
         # A child is the first half of a parent, plus the shuffled second half.
         estranged_father = parent[
                     int(network_size / 2):network_size]
         random.shuffle(estranged_father)
-        child = parent[0:int(network_size / 2)] + estranged_father
+        child = parent[:int(network_size / 2)] + estranged_father
 
         # The child is now part of the new generation
         survivors.append(child)
